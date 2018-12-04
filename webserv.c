@@ -1,4 +1,4 @@
-//Local Host: localhost:8080/info.html
+//Local Host: localhost:8080/file.cgi
 
 #include <stdio.h>
 #include <errno.h>
@@ -69,8 +69,7 @@ void serverConnect(int port){
 				exit(EXIT_FAILURE);
 			}
 			else if (pid == 0){ /*CHILD*/
-				/*Handle the request here in the background*/
-				setpgid(0,0);
+				/*Handle the request here*/
 
 				if ( (readBytes = read(acceptSocket, buffer, 30000)) == -1 ){
 					fprintf(stderr, "-webserv: Error reading from socket | %s\n", strerror(errno));
@@ -81,7 +80,7 @@ void serverConnect(int port){
 				write(1, buffer, strlen(buffer));
 
 				/*Send message (Hello World!) to the client*/
-				char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:12\n\nHello World!";
+				char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:22\n\nHello World!\nI am Jack";
 				write(acceptSocket, message, strlen(message));
 				printf("Message sent\n");
  				close (acceptSocket);
