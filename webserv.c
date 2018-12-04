@@ -8,6 +8,23 @@
 
 #include "stringManip.h"
 
+/*Function headers*/
+void serverConnect(int port);
+
+/*Global Variables*/
+
+
+/*Function Definitions*/
+int main(int argv, char** argc)
+{
+	int port;
+
+	port = stringToInt(argc[1]);
+	serverConnect(port);
+
+	return 0;
+}
+
 
 void serverConnect(int port){
 
@@ -81,18 +98,4 @@ void serverConnect(int port){
 
 	return;
 
-
-
-
-
-}
-
-int main(int argv, char** argc)
-{
-	int port;
-
-	port = stringToInt(argc[1]);
-	serverConnect(port);
-
-	return 0;
 }
