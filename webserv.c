@@ -95,21 +95,22 @@ void serverConnect(int port){
 				request = strtok(NULL, " ");
 
 				// stat file
+				struct stat statbuf;
+
+				stat(request, statbuf);
+
+				if (S_ISDIR(statbut.st_mode))
+					// directory
+				else if (S_ISREG(statbuf.st_mode))
+					// regular file
+				else
+					// error in request
+					// 404
+
 
 				// send file to client ?
-/*
-				char send_buffer[1000];
-				FILE *sendFile = fopen(request, "r");
-				while( !feof(sendFile) )
-				{
-					int numread = fread(send_buffer, sizeof(unsigned char), 1000, sendFile);
-					if( numread < 1 ) break; // EOF or error
 
-					char *send_buffer_ptr = send_buffer;
-					int numsent = send(acceptSocket, send_buffer_ptr, numread, 0);
-					    
-				}		
-*/
+
 				printf("Message sent\n");
  				close (acceptSocket);
 
