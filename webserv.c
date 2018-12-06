@@ -157,7 +157,6 @@ void serverConnect(int port){
 				printf("\nMessage sent\n");
  				close (acceptSocket);
 
-
 				exit(EXIT_SUCCESS);
 			}
 
@@ -165,7 +164,6 @@ void serverConnect(int port){
 		}
 
 	}
-
 
 	return;
 
