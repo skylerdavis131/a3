@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/stat.h>
 
 #include "stringManip.h"
 
@@ -93,36 +94,36 @@ void serverConnect(int port){
 				// Receive request from client address
 				char *request = strtok(buffer, " ");
 				request = strtok(NULL, " ");
+				request = request + 1; // removes slash from beginning of request
+				printf("%s\n", request);
 
 				// stat file
 				struct stat statbuf;
 
-				stat(request, statbuf);
+				stat(request, &statbuf);
 
-				if (S_ISDIR(statbut.st_mode))
+				if (S_ISDIR(statbuf.st_mode))
 					// directory
+					printf("is a directory\n");
+					// list directory contents
 				else if (S_ISREG(statbuf.st_mode))
 					// regular file
+					printf("is a regular file\n");
+					// send file to client
 				else
 					// error in request
 					// 404
-
-
-				// send file to client ?
-
+					printf("could not find file\n");
 
 				printf("Message sent\n");
  				close (acceptSocket);
 
-
 				exit(EXIT_SUCCESS);
 			}
 			
-
 		}
 
 	}
-
 
 	return;
 
