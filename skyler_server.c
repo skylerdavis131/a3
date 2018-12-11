@@ -157,10 +157,34 @@ void serverConnect(int port){
 								}
 		          }
 		        }
+		        else if(strcmp(extensionbuf,".cgi") == 0) // checks if request is html
+		        {
+		          printf("is cgi executable file\n");
+		          int fd;
+		          if((fd = open(request, O_RDONLY)) >= 0)
+		          {
+								printf("opened cgi file\n");
+								struct stat mybuf;
+								if(fstat(fd, &mybuf) == 0)
+								{
+									char * content_length = intToString(mybuf.st_size);
+									printf("Content size: %s\n", content_length);
+
+									FILE * fp = fopen(request,"r");
+									char * content_for_cgi = (char*)malloc(stringToInt(content_length) * sizeof(char));
+									int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:") + strlen(content_length) + strlen("\nConnection: keep-alive\n\n");
+									char * output_buffer = (char*)malloc(final_length * sizeof(char));
+									sprintf(output_buffer, "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%s\nConnection: keep-alive\n\n", content_length);
+									write(acceptSocket, output_buffer, final_length);
+									fread(content_for_cgi, sizeof(char), mybuf.st_size + 1, fp);
+									fclose(fp);
+									write(acceptSocket, content_for_cgi, mybuf.st_size);
+								}
+		          }
+		        }
 
 				printf("\nMessage sent\n");
  				close (acceptSocket);
-
 				exit(EXIT_SUCCESS);
 			}
 
