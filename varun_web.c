@@ -87,7 +87,7 @@ void serverConnect(int port){
 
 
 				/*Write to terminal the info we got from the client*/
-				write(1, buffer, strlen(buffer));
+				//write(1, buffer, strlen(buffer));
 
 				/*Send message (Hello World!) to the client*/
 				/*char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:23\n\nHello World!\nI am Jack\n";
@@ -96,13 +96,23 @@ void serverConnect(int port){
 				// Receive request from client address
 				char *request = strtok(buffer, " ");
 				request = strtok(NULL, " ");
+				//printf("%s\n",request);
         int i;
-        char extensionbuf[6];
+        char *extensionbuf = (char*)malloc(6*sizeof(char));
+				//printf("%s\n",request);
         for(i = 0; i < strlen(request); i++)
         {
           if(request[i] == '.')
             strcpy(extensionbuf,&request[i]);
         }
+				//printf("%s\n",request);
+				for(i = 0; i < 6; i++)
+				{
+					if(extensionbuf[i] == '?')
+					{
+						extensionbuf[i] = '\0';
+					}
+				}
         char * request2 = (char *)malloc((strlen(request) + 2) * sizeof(char));
         request2[0] = '.';
         for(i = 1; i <= strlen(request); i++)
@@ -111,12 +121,12 @@ void serverConnect(int port){
         }
         request2[strlen(request) + 1] = '\0';
 
-        write(1, request2, strlen(request2));
-        write(1,"\n",strlen("\n"));
+        //write(1, request2, strlen(request2));
+        //write(1,"\n",strlen("\n"));
 
         if((strcmp(extensionbuf,".jpg") == 0) || (strcmp(extensionbuf,".jpeg") == 0) || (strcmp(extensionbuf,".gif") == 0))
         {
-          printf("Here jpeg or gif\n");
+          //printf("Here jpeg or gif\n");
           int fd;
           if((fd = open(request2,O_RDONLY)) >= 0)
           {
@@ -153,11 +163,42 @@ void serverConnect(int port){
 
 				else if(strcmp(extensionbuf,".cgi") == 0)
 				{
-					printf("Here CGI\n");
+					//printf("Here CGI\n");
 					struct stat mybuf;
-					if(stat(request2,&mybuf) == 0)
+					char ** args;
+					int j = 2;
+					args = (char**)malloc(j * sizeof(char*));
+					args[0] = (char*)malloc((strlen(request2) + 1) * sizeof(char));
+					int check = 0;
+					for(i = 0; i < strlen(request2); i++)
 					{
-						char ** args;
+						if(request2[i] == '?')
+						{
+							check = 1;
+							break;
+						}
+						args[0][i] = request2[i];
+					}
+					args[0][i] = '\0';
+					if(check && (args[0][1] != '\0'))
+					{
+						char * request3 = strtok(request2,"?");
+						while((request3 = strtok(NULL,"&")) != NULL)
+						{
+							args[j-1] = (char *)malloc((strlen(request3) +1) * sizeof(char));
+							for(i = 0; i < strlen(request3); i++)
+							{
+								args[j-1][i] = request3[i];
+							}
+							args[j-1][i] = '\0';
+							j++;
+							args = (char**)realloc(args,j*sizeof(char*));
+						}
+					}
+					args[j-1] = '\0';
+					//printf("args[0]: %s\nargs[1]: %s\n",args[0],args[1]);
+					if(stat(args[0],&mybuf) == 0)
+					{
 						int pipefd[2];
 						pid_t pid, wpid;
 						int status;
@@ -175,15 +216,6 @@ void serverConnect(int port){
 						{
 							close(pipefd[0]);
 							dup2(pipefd[1],1);
-							args = (char**)malloc(2 * sizeof(char*));
-							args[0] = (char*)malloc((strlen(request2) + 1) * sizeof(char));
-							for(i = 0; i < strlen(request2); i++)
-							{
-								args[0][i] = request2[i];
-							}
-							args[0][i] = '\0';
-							args[1] = '\0';
-							//args[1][0] = '\0';
 							if(execve(&args[0][0],args,environ) < 0)
 							{
 								fprintf(stderr, "CGI: %s: %s\n", args[0], strerror(errno));
@@ -206,7 +238,12 @@ void serverConnect(int port){
 							fprintf(stderr, "CGI: Error reading from socket | %s\n", strerror(errno));
 							exit(EXIT_FAILURE);
 						}
-						write(1,bufvar,strlen(bufvar));
+						int content_length_length = strlen(bufvar) - strlen("Content-Type: text/html\n\n");
+						int final_length = strlen("HTTP/1.1 200 OK\nContent-Length:") + strlen(bufvar) + strlen(intToString(content_length_length));
+						char * output_buffer = (char*)malloc(final_length*sizeof(char));
+						sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Length:%d\n%s",content_length_length,bufvar);
+						//write(1,output_buffer,strlen(output_buffer));
+						write(acceptSocket,output_buffer,strlen(output_buffer));
 					}
 					else
 					{
@@ -218,13 +255,13 @@ void serverConnect(int port){
 
         else
         {
-          printf("Here Directory\n");
+          //printf("Here Directory\n");
           struct stat mybuf;
   				if(stat(request2,&mybuf) == 0)
   				{
   					if(S_ISDIR(mybuf.st_mode)!=0)
   					{
-              printf("It works\n");
+              //printf("It works\n");
   						/*DIR * dir;
   						if((dir = opendir(request2)) != NULL)
   						{
