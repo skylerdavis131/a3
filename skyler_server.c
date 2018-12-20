@@ -1,4 +1,4 @@
-//Local Host: localhost:8080/file.cgi
+//Local Host: localhost:8080/file.ext
 
 #include <stdio.h>
 #include <errno.h>
@@ -8,12 +8,13 @@
 #include <dirent.h>
 #include "stringManip.h"
 #include <sys/stat.h>
+#include <sys/socket.h>
 #include <fcntl.h>
 /*Function headers*/
 void serverConnect(int port);
 
 /*Global Variables*/
-
+extern char ** environ;
 
 /*Function Definitions*/
 int main(int argv, char** argc)
@@ -92,10 +93,24 @@ void serverConnect(int port){
 				//write(acceptSocket, message, strlen(message));
         
 				// Receive request from client address
-				char *request = strtok(buffer, " ");
-				request = strtok(NULL, " ");
+				char *http_request = strtok(buffer, " ");
 
+				if (strcmp(http_request, "GET") != 0)
+				{
+					printf("in if\n");
+					char * html_501 = "<div id='main'><div class='fof'><h1>Error 501</h1></div></div>\n";
+					char * output_length = intToString(strlen(html_501));
+					char * output_buffer = (char*)malloc(strlen(html_501) * sizeof(char));
+					sprintf(output_buffer, "HTTP/1.1 501 Not Implemented\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_501);
+					write(acceptSocket, output_buffer, strlen(output_buffer));
+				}
+				printf("after\n");
+
+				char *request = strtok(NULL, " ");
+
+				printf("%s\n", request);
 				request = request + 1;
+				char extensionbuf[6]; // holds extension of request
 
 				printf("\n%s\n", request);
 				// stat file
@@ -110,14 +125,15 @@ void serverConnect(int port){
 				else if (S_ISREG(statbuf.st_mode))
 					// regular file
 					printf("reg\n");
-				else
-					// error in request (404)
-					printf("404\n");
+				else // 404 ERROR
+				{
+					char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+					char * output_length = intToString(strlen(html_404));
+					char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+					sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+					write(acceptSocket, output_buffer, strlen(output_buffer));
+				}
         
-				// send file to client ?
-
-		        char extensionbuf[6]; // holds extension of request
-
 		        int i;
 		        for(i = 0; i < strlen(request); i++)
 		        {
@@ -157,30 +173,74 @@ void serverConnect(int port){
 								}
 		          }
 		        }
-		        else if(strcmp(extensionbuf,".cgi") == 0) // checks if request is html
+		        else if(strcmp(extensionbuf,".cgi") == 0) // checks if request is cgi
 		        {
-		          printf("is cgi executable file\n");
-		          int fd;
-		          if((fd = open(request, O_RDONLY)) >= 0)
-		          {
-								printf("opened cgi file\n");
-								struct stat mybuf;
-								if(fstat(fd, &mybuf) == 0)
-								{
-									char * content_length = intToString(mybuf.st_size);
-									printf("Content size: %s\n", content_length);
+		          struct stat mybuf;
+					if(stat(request,&mybuf) == 0)
+					{
+						char ** args;
+						int pipefd[2];
+						pid_t pid, wpid;
+						int status;
+						if (pipe(pipefd) == -1)
+						{
+							fprintf(stderr, "CGI: failed to make pipe | %s\n", strerror(errno));
+							exit(EXIT_FAILURE);
+						}
+						if((pid = fork()) < 0)// error
+						{
+							fprintf(stderr, "CGI: error forking | %s\n", strerror(errno));
+							exit(EXIT_FAILURE);
+						}
+						else if(pid == 0) // CHILD
+						{
+							close(pipefd[0]);
+							dup2(pipefd[1],1);
+							args = (char**)malloc(2 * sizeof(char*));
+							args[0] = (char*)malloc((strlen(request) + 1) * sizeof(char));
+							for(i = 0; i < strlen(request); i++)
+							{
+								args[0][i] = request[i];
+							}
+							args[0][i] = '\0';
+							args[1] = '\0';
+							//args[1][0] = '\0';
+							if(execve(&args[0][0],args,environ) < 0)
+							{
+								fprintf(stderr, "CGI: %s: %s\n", args[0], strerror(errno));
+								free(args);
+								exit(EXIT_FAILURE);
+							}
+						}
+						else // Parent
+						{
+							close(pipefd[1]);
+							do
+							{
+								wpid = waitpid(pid, &status, WUNTRACED);
+							}
+							while( !WIFEXITED(status) && !WIFSIGNALED(status));
+						}
+						char bufvar[80000];
+						if((readBytes = read(pipefd[0],bufvar,80000)) == -1)
+						{
+							fprintf(stderr, "CGI: Error reading from socket | %s\n", strerror(errno));
+							exit(EXIT_FAILURE);
+						}
+					
+						char * output_length = intToString(strlen(bufvar));
+						char * output_buffer = (char*)malloc(strlen(bufvar) * sizeof(char));
+						sprintf(output_buffer, "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%s\n\n%s\n", output_length, bufvar);
+						write(acceptSocket, output_buffer, strlen(output_buffer));
+						write(1, bufvar, strlen(bufvar));
+						
 
-									FILE * fp = fopen(request,"r");
-									char * content_for_cgi = (char*)malloc(stringToInt(content_length) * sizeof(char));
-									int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:") + strlen(content_length) + strlen("\nConnection: keep-alive\n\n");
-									char * output_buffer = (char*)malloc(final_length * sizeof(char));
-									sprintf(output_buffer, "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%s\nConnection: keep-alive\n\n", content_length);
-									write(acceptSocket, output_buffer, final_length);
-									fread(content_for_cgi, sizeof(char), mybuf.st_size + 1, fp);
-									fclose(fp);
-									write(acceptSocket, content_for_cgi, mybuf.st_size);
-								}
-		          }
+					}
+					else
+					{
+						fprintf(stderr, "CGI: File doesn't exists %s\n", strerror(errno));
+						exit(EXIT_FAILURE);
+					}
 		        }
 
 				printf("\nMessage sent\n");
