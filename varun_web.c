@@ -222,11 +222,10 @@ void serverConnect(int port){
           struct stat mybuf;
   				if(stat(request2,&mybuf) == 0)
   				{
-            printf("it works\n");
   					if(S_ISDIR(mybuf.st_mode)!=0)
   					{
               printf("It works\n");
-  						DIR * dir;
+  						/*DIR * dir;
   						if((dir = opendir(request2)) != NULL)
   						{
   							struct dirent * dp;
@@ -259,7 +258,79 @@ void serverConnect(int port){
                 //free(output_buffer);
                 //free(content_length_length);
                 //free(content_for_dir);
-  						}
+  						}*/
+
+							char ** args;
+							char ** looker;
+							char * env_seperate[] = {"PATH=/bin","USER=me",NULL};
+							looker = environ;
+							environ = env_seperate;
+							//env_seperate = (char**)malloc(3 * sizeof(char *));
+							//env_seperate[0] = (char*)malloc((strlen("PATH=/bin") + 1) * sizeof(char));
+							//env_seperate[0] = "PATH=/bin";
+							//env_seperate[0][strlen("PATH=/bin")] = '\0';
+							//env_seperate[1] = (char*)malloc((strlen("USER=me") + 1) * sizeof(char));
+							int pipefd[2];
+							pid_t pid, wpid;
+							int status;
+							if (pipe(pipefd) == -1)
+							{
+								fprintf(stderr, "DIR: failed to make pipe | %s\n", strerror(errno));
+								exit(EXIT_FAILURE);
+							}
+							if((pid = fork()) < 0)// error
+							{
+								fprintf(stderr, "DIR: error forking | %s\n", strerror(errno));
+								exit(EXIT_FAILURE);
+							}
+							else if(pid == 0) // CHILD
+							{
+								close(pipefd[0]);
+								dup2(pipefd[1],1);
+								args = (char **)malloc(4 * sizeof(char*));
+								args[0] = (char *)malloc(3 * sizeof(char));
+								args[0][0] = 'l';
+								args[0][1] = 's';
+								args[0][2] = '\0';
+								args[1] = (char *)malloc(3 * sizeof(char));
+								args[1][0] = '-';
+								args[1][1] = 'l';
+								args[1][2] = '\0';
+								args[2] = (char *)malloc((strlen(request2) + 1) * sizeof(char));
+								for(i = 0; i < strlen(request2); i++)
+								{
+									args[2][i] = request2[i];
+								}
+								args[2][i] = '\0';
+								args[3] = '\0';
+								if(execvp(args[0],args) < 0)
+								{
+									fprintf(stderr, "DIR: %s: %s\n", args[0], strerror(errno));
+									free(args);
+									exit(EXIT_FAILURE);
+								}
+							}
+							else // Parent
+							{
+								close(pipefd[1]);
+								do
+								{
+									wpid = waitpid(pid, &status, WUNTRACED);
+								}
+								while( !WIFEXITED(status) && !WIFSIGNALED(status));
+							}
+							environ = looker;
+							char bufvar[80000];
+							if(readBytes = read(pipefd[0],bufvar,80000) == -1)
+							{
+								fprintf(stderr, "CGI: Error reading from socket | %s\n", strerror(errno));
+								exit(EXIT_FAILURE);
+							}
+							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:") + strlen(intToString(strlen(bufvar))) + strlen(bufvar) + 4;
+							char * output_buffer = (char*)malloc(final_length*sizeof(char));
+							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%d\n\n%s",strlen(bufvar),bufvar);
+							write(acceptSocket,output_buffer,strlen(output_buffer));
+							free(output_buffer);
   					}
   				}
         }
