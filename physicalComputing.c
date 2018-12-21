@@ -57,11 +57,11 @@ int main(int argv, char** argc){
 	read(fd, buff, 400);
 	sleep(4);
 
-	outputLength = strlen(printHeader) + strlen(buff) + strlen(intToString(strlen(buff)));
-	output = (char*)malloc(outputLength * sizeof(char));
-	strcat(strcat(printHeader, intToString(strlen(buff))), buff);
+	// outputLength = strlen(printHeader) + strlen(buff) + strlen(intToString(strlen(buff)));
+	// output = (char*)malloc(outputLength * sizeof(char));
+	// strcat(strcat(printHeader, intToString(strlen(buff))), buff);
 
-	write(1, output, sizeof(buff));
+	write(1, buff, sizeof(buff));
 
 
 
