@@ -336,9 +336,9 @@ void serverConnect(int port){
 						}
 						else
 						{
-							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:") + strlen(intToString(strlen(bufvar))) + strlen(bufvar) + 4;
+							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length:") + strlen(intToString(strlen(bufvar))) + strlen(bufvar) + 4;
 							char * output_buffer = (char*)malloc(final_length*sizeof(char));
-							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%lu\n\n%s",strlen(bufvar),bufvar);
+							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length:%lu\n\n%s",strlen(bufvar),bufvar);
 							write(acceptSocket,output_buffer,strlen(output_buffer));
 							free(output_buffer);
 						}
