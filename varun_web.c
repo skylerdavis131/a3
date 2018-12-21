@@ -95,7 +95,27 @@ void serverConnect(int port){
         */
 				// Receive request from client address
 				char *request = strtok(buffer, " ");
+				if (strcmp(request, "GET") != 0)
+				{
+					char * html_501 = "<div id='main'><div class='fof'><h1>Error 501</h1></div></div>\n";
+					char * output_length = intToString(strlen(html_501));
+					char * output_buffer = (char*)malloc(strlen(html_501) * sizeof(char));
+					sprintf(output_buffer, "HTTP/1.1 501 Not Implemented\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_501);
+					write(acceptSocket, output_buffer, strlen(output_buffer));
+					free(output_buffer);
+					exit(EXIT_FAILURE);
+				}
 				request = strtok(NULL, " ");
+				if(strcmp(request,"/") == 0)
+				{
+					char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+					char * output_length = intToString(strlen(html_404));
+					char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+					sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+					write(acceptSocket, output_buffer, strlen(output_buffer));
+					free(output_buffer);
+					exit(EXIT_FAILURE);
+				}
 				//printf("%s\n",request);
         int i;
         char *extensionbuf = (char*)malloc(6*sizeof(char));
@@ -157,9 +177,73 @@ void serverConnect(int port){
 							fclose(fp);
 							write(acceptSocket,content_for_jpg,mybuf.st_size);
 						}
+						else
+						{
+							char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+							char * output_length = intToString(strlen(html_404));
+							char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+							sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+							write(acceptSocket, output_buffer, strlen(output_buffer));
+							free(output_buffer);
+							exit(EXIT_FAILURE);
+						}
           }
+					else
+					{
+						char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+						char * output_length = intToString(strlen(html_404));
+						char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+						sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+						write(acceptSocket, output_buffer, strlen(output_buffer));
+						free(output_buffer);
+						exit(EXIT_FAILURE);
+					}
         }
+				else if(strcmp(extensionbuf,".html") == 0) // checks if request is html
+				{
+					printf("is html file\n");
+					int fd;
+					if((fd = open(request, O_RDONLY)) >= 0)
+					{
+						printf("opened html file\n");
+						struct stat mybuf;
+						if(fstat(fd, &mybuf) == 0)
+						{
+							char * content_length = intToString(mybuf.st_size);
+							printf("Content size: %s\n", content_length);
 
+							FILE * fp = fopen(request,"r");
+							char * content_for_html = (char*)malloc(stringToInt(content_length) * sizeof(char));
+							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length:") + strlen(content_length) + strlen("\nConnection: keep-alive\n\n");
+							char * output_buffer = (char*)malloc(final_length * sizeof(char));
+							sprintf(output_buffer, "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length:%s\nConnection: keep-alive\n\n", content_length);
+							write(acceptSocket, output_buffer, final_length);
+							fread(content_for_html, sizeof(char), mybuf.st_size + 1, fp);
+							fclose(fp);
+							write(acceptSocket, content_for_html, mybuf.st_size);
+						}
+						else
+						{
+							char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+							char * output_length = intToString(strlen(html_404));
+							char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+							sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+							write(acceptSocket, output_buffer, strlen(output_buffer));
+							free(output_buffer);
+							exit(EXIT_FAILURE);
+						}
+					}
+					else
+					{
+						char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+						char * output_length = intToString(strlen(html_404));
+						char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+						sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+						write(acceptSocket, output_buffer, strlen(output_buffer));
+						free(output_buffer);
+						exit(EXIT_FAILURE);
+					}
+				}
 
 				else if(strcmp(extensionbuf,".cgi") == 0)
 				{
@@ -259,7 +343,12 @@ void serverConnect(int port){
 					}
 					else
 					{
-						fprintf(stderr, "CGI: File doesn't exists %s\n", strerror(errno));
+						char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+						char * output_length = intToString(strlen(html_404));
+						char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+						sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+						write(acceptSocket, output_buffer, strlen(output_buffer));
+						free(output_buffer);
 						exit(EXIT_FAILURE);
 					}
 				}
@@ -381,7 +470,27 @@ void serverConnect(int port){
 							write(acceptSocket,output_buffer,strlen(output_buffer));
 							free(output_buffer);
   					}
+						else
+						{
+							char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+							char * output_length = intToString(strlen(html_404));
+							char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+							sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+							write(acceptSocket, output_buffer, strlen(output_buffer));
+							free(output_buffer);
+							exit(EXIT_FAILURE);
+						}
   				}
+					else
+					{
+						char * html_404 = "<div id='main'><div class='fof'><h1>Error 404</h1></div></div>\n";
+						char * output_length = intToString(strlen(html_404));
+						char * output_buffer = (char*)malloc(strlen(html_404) * sizeof(char));
+						sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
+						write(acceptSocket, output_buffer, strlen(output_buffer));
+						free(output_buffer);
+						exit(EXIT_FAILURE);
+					}
         }
 				// send file to client ?
 /*
