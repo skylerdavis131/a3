@@ -52,8 +52,6 @@ int main(int argv, char** argc)
 			wpid = waitpid(pid, &status, WUNTRACED);
 		} while( !WIFEXITED(status) && !WIFSIGNALED(status));
 
-		sleep(5);
-
 		printf("Content-Type: text/html\n\n");
 		printf("<html><head><style>img {width: 40%%;}</style></head>\n");
 		printf("<body style='background-color:#bbff99;'>\n");
