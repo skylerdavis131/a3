@@ -87,7 +87,7 @@ void serverConnect(int port){
 
 
 				/*Write to terminal the info we got from the client*/
-				//write(1, buffer, strlen(buffer));
+				write(1, buffer, strlen(buffer));
 
 				/*Send message (Hello World!) to the client*/
 				/*char* message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:23\n\nHello World!\nI am Jack\n";
@@ -121,12 +121,12 @@ void serverConnect(int port){
         }
         request2[strlen(request) + 1] = '\0';
 
-        //write(1, request2, strlen(request2));
-        //write(1,"\n",strlen("\n"));
+        write(1, request2, strlen(request2));
+        write(1,"\n",strlen("\n"));
 
         if((strcmp(extensionbuf,".jpg") == 0) || (strcmp(extensionbuf,".jpeg") == 0) || (strcmp(extensionbuf,".gif") == 0))
         {
-          //printf("Here jpeg or gif\n");
+          printf("Here jpeg or gif\n");
           int fd;
           if((fd = open(request2,O_RDONLY)) >= 0)
           {
@@ -163,7 +163,7 @@ void serverConnect(int port){
 
 				else if(strcmp(extensionbuf,".cgi") == 0)
 				{
-					//printf("Here CGI\n");
+					printf("Here CGI\n");
 					struct stat mybuf;
 					char ** args;
 					int j = 2;
@@ -195,8 +195,8 @@ void serverConnect(int port){
 							args = (char**)realloc(args,j*sizeof(char*));
 						}
 					}
-					args[j-1] = NULL;
-					//printf("args[0]: %s\nargs[1]: %s\n",args[0],args[1]);
+					args[j-1] = '\0';
+					printf("args[0]: %s\nargs[1]: %s\n",args[0],args[1]);
 					if(stat(args[0],&mybuf) == 0)
 					{
 						int pipefd[2];
@@ -233,17 +233,29 @@ void serverConnect(int port){
 							while( !WIFEXITED(status) && !WIFSIGNALED(status));
 						}
 						char bufvar[80000];
-						if( (readBytes = read(pipefd[0],bufvar,80000)) == -1)
+						if(readBytes = read(pipefd[0],bufvar,80000) == -1)
 						{
 							fprintf(stderr, "CGI: Error reading from socket | %s\n", strerror(errno));
 							exit(EXIT_FAILURE);
 						}
-						int content_length_length = strlen(bufvar) - strlen("Content-Type: text/html\n\n");
-						int final_length = strlen("HTTP/1.1 200 OK\nContent-Length:") + strlen(bufvar) + strlen(intToString(content_length_length));
-						char * output_buffer = (char*)malloc(final_length*sizeof(char));
-						sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Length:%d\n%s",content_length_length,bufvar);
-						//write(1,output_buffer,strlen(output_buffer));
-						write(acceptSocket,output_buffer,strlen(output_buffer));
+						if((strcmp(args[0],"./test2.cgi") == 0) || (strcmp(args[0],"./plot.cgi") == 0))
+						{
+							int content_length_length = strlen(bufvar) - strlen("Content-Type: text/html\n\n");
+							int final_length = strlen("HTTP/1.1 200 OK\nContent-Length:") + strlen(bufvar) + strlen(intToString(content_length_length));
+							char * output_buffer = (char*)malloc(final_length*sizeof(char));
+							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Length:%d\n%s",content_length_length,bufvar);
+							write(1,output_buffer,strlen(output_buffer));
+							write(acceptSocket,output_buffer,strlen(output_buffer));
+							free(output_buffer);
+						}
+						else
+						{
+							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:") + strlen(intToString(strlen(bufvar))) + strlen(bufvar) + 4;
+							char * output_buffer = (char*)malloc(final_length*sizeof(char));
+							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%d\n\n%s",strlen(bufvar),bufvar);
+							write(acceptSocket,output_buffer,strlen(output_buffer));
+							free(output_buffer);
+						}
 					}
 					else
 					{
@@ -255,13 +267,13 @@ void serverConnect(int port){
 
         else
         {
-          //printf("Here Directory\n");
+          printf("Here Directory\n");
           struct stat mybuf;
   				if(stat(request2,&mybuf) == 0)
   				{
   					if(S_ISDIR(mybuf.st_mode)!=0)
   					{
-              //printf("It works\n");
+              printf("It works\n");
   						/*DIR * dir;
   						if((dir = opendir(request2)) != NULL)
   						{
@@ -339,7 +351,7 @@ void serverConnect(int port){
 									args[2][i] = request2[i];
 								}
 								args[2][i] = '\0';
-								args[3] = NULL;
+								args[3] = '\0';
 								if(execvp(args[0],args) < 0)
 								{
 									fprintf(stderr, "DIR: %s: %s\n", args[0], strerror(errno));
@@ -358,14 +370,14 @@ void serverConnect(int port){
 							}
 							environ = looker;
 							char bufvar[80000];
-							if( (readBytes = read(pipefd[0],bufvar,80000)) == -1)
+							if(readBytes = read(pipefd[0],bufvar,80000) == -1)
 							{
 								fprintf(stderr, "CGI: Error reading from socket | %s\n", strerror(errno));
 								exit(EXIT_FAILURE);
 							}
 							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:") + strlen(intToString(strlen(bufvar))) + strlen(bufvar) + 4;
 							char * output_buffer = (char*)malloc(final_length*sizeof(char));
-							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%lu\n\n%s",strlen(bufvar),bufvar);
+							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%d\n\n%s",strlen(bufvar),bufvar);
 							write(acceptSocket,output_buffer,strlen(output_buffer));
 							free(output_buffer);
   					}
