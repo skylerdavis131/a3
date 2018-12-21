@@ -11,8 +11,10 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <sys/wait.h>
+
 /*Function headers*/
 void serverConnect(int port);
+int check_html(char* buffer);
 
 /*Global Variables*/
 extern char ** environ;
@@ -27,7 +29,6 @@ int main(int argv, char** argc)
 
 	return 0;
 }
-
 
 void serverConnect(int port){
 
@@ -324,7 +325,8 @@ void serverConnect(int port){
 							fprintf(stderr, "CGI: Error reading from socket | %s\n", strerror(errno));
 							exit(EXIT_FAILURE);
 						}
-						if((strcmp(args[0],"./test2.cgi") == 0) || (strcmp(args[0],"./plot.cgi") == 0))
+
+						if(check_html(bufvar) == 1)
 						{
 							int content_length_length = strlen(bufvar) - strlen("Content-Type: text/html\n\n");
 							int final_length = strlen("HTTP/1.1 200 OK\nContent-Length:") + strlen(bufvar) + strlen(intToString(content_length_length));
@@ -336,9 +338,9 @@ void serverConnect(int port){
 						}
 						else
 						{
-							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length:") + strlen(intToString(strlen(bufvar))) + strlen(bufvar) + 4;
+							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:") + strlen(intToString(strlen(bufvar))) + strlen(bufvar) + 4;
 							char * output_buffer = (char*)malloc(final_length*sizeof(char));
-							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length:%lu\n\n%s",strlen(bufvar),bufvar);
+							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%lu\n\n%s",strlen(bufvar),bufvar);
 							write(acceptSocket,output_buffer,strlen(output_buffer));
 							free(output_buffer);
 						}
@@ -514,3 +516,15 @@ void serverConnect(int port){
 	}
 	return;
 }
+
+int check_html(char* buffer)
+{
+	
+	if(strstr(buffer, "<html>") > 0){
+		return 1;
+	}
+	else
+		return 0;
+}
+
+

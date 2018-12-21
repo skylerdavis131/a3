@@ -43,7 +43,7 @@ int main(int argv, char** argc)
 
 		if(execve(&args[0][0], args, environ) < 0)
 		{
-			fprintf(stderr, "CGI: %s: %s\n", "my-histogram.c", strerror(errno));
+			fprintf(stderr, "CGI: %s: %s\n", args[0], strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 	}
