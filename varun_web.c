@@ -195,7 +195,7 @@ void serverConnect(int port){
 							args = (char**)realloc(args,j*sizeof(char*));
 						}
 					}
-					args[j-1] = '\0';
+					args[j-1] = NULL;
 					//printf("args[0]: %s\nargs[1]: %s\n",args[0],args[1]);
 					if(stat(args[0],&mybuf) == 0)
 					{
@@ -233,7 +233,7 @@ void serverConnect(int port){
 							while( !WIFEXITED(status) && !WIFSIGNALED(status));
 						}
 						char bufvar[80000];
-						if(readBytes = read(pipefd[0],bufvar,80000) == -1)
+						if( (readBytes = read(pipefd[0],bufvar,80000)) == -1)
 						{
 							fprintf(stderr, "CGI: Error reading from socket | %s\n", strerror(errno));
 							exit(EXIT_FAILURE);
@@ -339,7 +339,7 @@ void serverConnect(int port){
 									args[2][i] = request2[i];
 								}
 								args[2][i] = '\0';
-								args[3] = '\0';
+								args[3] = NULL;
 								if(execvp(args[0],args) < 0)
 								{
 									fprintf(stderr, "DIR: %s: %s\n", args[0], strerror(errno));
@@ -358,14 +358,14 @@ void serverConnect(int port){
 							}
 							environ = looker;
 							char bufvar[80000];
-							if(readBytes = read(pipefd[0],bufvar,80000) == -1)
+							if( (readBytes = read(pipefd[0],bufvar,80000)) == -1)
 							{
 								fprintf(stderr, "CGI: Error reading from socket | %s\n", strerror(errno));
 								exit(EXIT_FAILURE);
 							}
 							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:") + strlen(intToString(strlen(bufvar))) + strlen(bufvar) + 4;
 							char * output_buffer = (char*)malloc(final_length*sizeof(char));
-							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%d\n\n%s",strlen(bufvar),bufvar);
+							sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length:%lu\n\n%s",strlen(bufvar),bufvar);
 							write(acceptSocket,output_buffer,strlen(output_buffer));
 							free(output_buffer);
   					}
