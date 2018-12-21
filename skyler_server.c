@@ -97,22 +97,20 @@ void serverConnect(int port){
 
 				if (strcmp(http_request, "GET") != 0)
 				{
-					printf("in if\n");
 					char * html_501 = "<div id='main'><div class='fof'><h1>Error 501</h1></div></div>\n";
 					char * output_length = intToString(strlen(html_501));
 					char * output_buffer = (char*)malloc(strlen(html_501) * sizeof(char));
 					sprintf(output_buffer, "HTTP/1.1 501 Not Implemented\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_501);
 					write(acceptSocket, output_buffer, strlen(output_buffer));
 				}
-				printf("after\n");
 
 				char *request = strtok(NULL, " ");
 
-				printf("%s\n", request);
 				request = request + 1;
-				char extensionbuf[6]; // holds extension of request
+				char extensionbuf[20]; // holds extension of request
 
-				printf("\n%s\n", request);
+				printf("\nrequest: %s\n", request);
+
 				// stat file
 
 				struct stat statbuf;
@@ -133,7 +131,8 @@ void serverConnect(int port){
 					sprintf(output_buffer, "HTTP/1.1 404 Not Found\nConnection: close\nContent-Type: text/html\nContent-Length: %s\n\n%s\n", output_length, html_404);
 					write(acceptSocket, output_buffer, strlen(output_buffer));
 				}
-        
+        		printf("past 404\n");
+
 		        int i;
 		        for(i = 0; i < strlen(request); i++)
 		        {
@@ -147,6 +146,9 @@ void serverConnect(int port){
 		          request2[i] = request[i-1];
 		        }
 		        request2[strlen(request) + 1] = '\0';
+		        printf("\nextenstion: %s\n", extensionbuf);
+
+		        
 
 		        if(strcmp(extensionbuf,".html") == 0) // checks if request is html
 		        {
@@ -173,10 +175,48 @@ void serverConnect(int port){
 								}
 		          }
 		        }
-		        else if(strcmp(extensionbuf,".cgi") == 0) // checks if request is cgi
+				else if((strcmp(extensionbuf,".jpg") == 0) || (strcmp(extensionbuf,".jpeg") == 0) || (strcmp(extensionbuf,".gif") == 0))
 		        {
+		          int fd;
+		          if((fd = open(request,O_RDONLY)) >= 0)
+		          {
+								printf("Here jpeg or gif\n");
+								struct stat mybuf;
+								if(fstat(fd,&mybuf) == 0)
+								{
+									char * content_length_length = intToString(mybuf.st_size);
+									printf("Content size: %s\n",content_length_length);
+									FILE * fp = fopen(request,"r");
+									char * content_for_jpg = (char*)malloc(stringToInt(content_length_length) * sizeof(char));
+									int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: image/jpeg\nContent-Length:") + strlen(content_length_length) + strlen("\nConnection: keep-alive\n\n");
+									if(strcmp(extensionbuf,".gif") == 0)
+									{
+										final_length--;
+									}
+									char * output_buffer = (char*)malloc(final_length*sizeof(char));
+									if(strcmp(extensionbuf,".gif") == 0)
+									{
+										sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: image/gif\nContent-Length:%s\nConnection: keep-alive\n\n",content_length_length);
+									}
+									else
+									{
+										sprintf(output_buffer,"HTTP/1.1 200 OK\nContent-Type: image/jpeg\nContent-Length:%s\nConnection: keep-alive\n\n",content_length_length);
+									}
+									write(acceptSocket,output_buffer,final_length);
+									fread(content_for_jpg,sizeof(char),mybuf.st_size + 1,fp);
+									fclose(fp);
+									write(acceptSocket,content_for_jpg,mybuf.st_size);
+								}
+		          }
+		        }
+		        else if(extensionbuf[1] == 'c' && extensionbuf[2] == 'g' && extensionbuf[3] == 'i') // checks if request is cgi
+		        {
+		          if (extensionbuf[4] == '?')
+		          {
+
+		          }
 		          struct stat mybuf;
-					if(stat(request,&mybuf) == 0)
+					if(stat( ,&mybuf) == 0)
 					{
 						char ** args;
 						int pipefd[2];
@@ -204,6 +244,7 @@ void serverConnect(int port){
 							}
 							args[0][i] = '\0';
 							args[1] = '\0';
+
 							//args[1][0] = '\0';
 							if(execve(&args[0][0],args,environ) < 0)
 							{
