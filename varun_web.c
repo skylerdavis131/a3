@@ -203,8 +203,10 @@ void serverConnect(int port){
 				{
 					printf("is html file\n");
 					int fd;
-					if((fd = open(request, O_RDONLY)) >= 0)
+					printf("%s\n", request2);
+					if((fd = open(request2, O_RDONLY)) >= 0)
 					{
+						printf("opened %s\n", request2);
 						printf("opened html file\n");
 						struct stat mybuf;
 						if(fstat(fd, &mybuf) == 0)
@@ -212,7 +214,7 @@ void serverConnect(int port){
 							char * content_length = intToString(mybuf.st_size);
 							printf("Content size: %s\n", content_length);
 
-							FILE * fp = fopen(request,"r");
+							FILE * fp = fopen(request2,"r");
 							char * content_for_html = (char*)malloc(stringToInt(content_length) * sizeof(char));
 							int final_length = strlen("HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length:") + strlen(content_length) + strlen("\nConnection: keep-alive\n\n");
 							char * output_buffer = (char*)malloc(final_length * sizeof(char));

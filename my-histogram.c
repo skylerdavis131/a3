@@ -24,23 +24,31 @@ void listdir(const char *name)
     DIR *dir;
     struct dirent *entry;
     struct stat statbuf;
+    char path[1024];
 
     if (!(dir = opendir(name)))
         return;
 
+    direct++;
+
     while ((entry = readdir(dir)) != NULL) {
-    	lstat(entry->d_name, &statbuf);
+
+    	snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
+    	lstat(path, &statbuf);
+
+
         if (S_ISDIR(statbuf.st_mode)) {
+       
 
-        	direct++;
-            
-            char path[1024];
-
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || entry->d_name[0] == '.')
+            {
                 continue;
+            }
+            //direct++;
             
-            snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
-
+            //snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
+            //printf("%s\n", path);
+            //printf("%s\n", entry->d_name);
             //printf("%*s[%s]\n", indent, "", entry->d_name);
             listdir(path);
         } 
@@ -67,9 +75,14 @@ void listdir(const char *name)
 int main(int argv, char** argc)
 {
 	char * directory = argc[1];
+	if (strcmp(directory, "root") == 0)
+		listdir(".");
+	else
+		listdir(directory);
 
-	listdir(directory);
-
+	direct--;
+	
+	//printf("directory: %s\n", directory);
 	printf("%d\n", reg);
     printf("%d\n", direct);
     printf("%d\n", links);
@@ -80,6 +93,7 @@ int main(int argv, char** argc)
 
     FILE * temp = fopen("file_data.dat", "w");
     int color = 0x009900;
+
     // write the data to a data file
     fprintf(temp, "regular\t%d\t%d\n", reg, color);
     fprintf(temp, "directory\t%d\t%d\n", direct, color);

@@ -17,7 +17,10 @@ int main(int argv, char** argc)
 {
 	char * directory = argc[1];
 
-	char ** args;
+	char* execDir = malloc(sizeof(char) * strlen(directory) + 1);
+	strcpy(execDir, directory);
+	strcat(execDir, "\0");
+
 	int pipefd[2];
 	pid_t pid, wpid;
 	int status;
@@ -35,20 +38,30 @@ int main(int argv, char** argc)
 	{
 		close(pipefd[0]);
 		dup2(pipefd[1],1);
+		
+		char *args[] = {"./hist\0", execDir, NULL };
 
-		if(execve("my-histogram.c",&directory,environ) < 0)
+		if(execve(&args[0][0], args, environ) < 0)
 		{
 			fprintf(stderr, "CGI: %s: %s\n", "my-histogram.c", strerror(errno));
 			exit(EXIT_FAILURE);
 		}
 	}
+	else{ 
+		do{
+			wpid = waitpid(pid, &status, WUNTRACED);
+		} while( !WIFEXITED(status) && !WIFSIGNALED(status));
 
-	printf("Content-Type: text/html\n\n");
-	printf("<html><head><style>img {width: 40%%;}</style></head>\n");
-	printf("<body style='background-color:#bbff99;'>\n");
-	printf("<h1 style='font-size: 250%%;font-family:verdana;color:#009900;text-align:center;'>%s</h1>\n", directory);
-	printf("<p style='font-size: 150%%;'></p>\n");
-	printf("<center><img src='test_files.jpeg' alt='GNU Plot' width='400' height='400'></center>\n</body>\n</html>\n");
+		sleep(5);
+
+		printf("Content-Type: text/html\n\n");
+		printf("<html><head><style>img {width: 40%%;}</style></head>\n");
+		printf("<body style='background-color:#bbff99;'>\n");
+		printf("<h1 style='font-size: 250%%;font-family:verdana;color:#009900;text-align:center;'>CS 410: Webserver</h1>\n");
+		printf("<p style='font-size: 150%%;'></p>\n");
+		printf("<center><img src='test_files.jpeg' alt='GNU Plot' width='400' height='400'></center>\n</body>\n</html>\n");
+
+	}
 	  
 	return 0;
 }
