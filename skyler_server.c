@@ -216,7 +216,7 @@ void serverConnect(int port){
 
 		          }
 		          struct stat mybuf;
-					if(stat( ,&mybuf) == 0)
+					if(stat(request ,&mybuf) == 0)
 					{
 						char ** args;
 						int pipefd[2];
